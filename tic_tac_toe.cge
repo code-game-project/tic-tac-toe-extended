@@ -1,0 +1,61 @@
+name tic_tac_toe
+version 0.0.1
+
+// Starts the game before the maximum player count is reached
+event start {}
+
+// Marks a field with the player's symbol
+event mark {
+  row: int,
+  column: string,
+}
+
+// The available symbols
+enum symbol {
+  // Player 1's symbol
+  a,
+  // Player 2's symbol
+  b,
+  // Player 3's symbol
+  c,
+  // Player 4's symbol
+  d,
+  // Player 5's symbol
+  e,
+  // Empty field
+  empty
+}
+
+// Notifies the player of the current board
+event board {
+  board: list<map<symbol>>,
+}
+
+// Notifies the player that a field has been marked
+event marked {
+  row: int,
+  column: string,
+  symbol: symbol,
+}
+
+// Notifies the player that the field they tried to mark is occupied
+event field_occupied {
+  row: int,
+  column: string,
+  symbol: symbol,
+}
+
+// Notifies the player that it is their turn to mark a field
+event my_turn {}
+
+// Notifies the player that it is an opponents turn
+event opponents_turn {
+  // The id of the player who's turn it is
+  player: string
+}
+
+// Notifies the player that they have won
+event winner {}
+
+// Notifies the player that they have lost
+event looser {}

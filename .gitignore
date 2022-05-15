@@ -1,0 +1,8 @@
+# Dependency directories
+node_modules/
+
+# Build
+dist/
+
+# MacOS
+.DS_Store
