@@ -10,7 +10,7 @@ export function api(gameServer: GameServer): Router {
     cg_version: "0.3.0",
     display_name: "Tic-tac-toe",
     description: "Tic-tac-toe for CodeGame",
-    version: "0.1.1",
+    version: "0.1.2",
     repository_url: "https://github.com/code-game-project/tic-tac-toe.git"
   }));
   router.get("/games", (req, res) => {

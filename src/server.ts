@@ -78,7 +78,7 @@ export class GameServer {
    */
   public join(gameId: string, username: string, socket: Socket): Player {
     const game = this.getGame(gameId);
-    if (game) return this.publicGames[gameId].newPlayer(username, socket);
+    if (game) return game.newPlayer(username, socket);
     else throw `There is no game with the game_id "${gameId}".`;
   }
 
