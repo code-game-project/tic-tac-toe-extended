@@ -103,7 +103,7 @@ export class Socket {
     } catch (err) {
       this.emit("server", {
         name: "cg_error",
-        data: { reason: String(typeof err === "object" ? JSON.stringify(err) : String(err)) }
+        data: { reason: String(err) }
       });
     }
     return true;
