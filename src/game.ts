@@ -68,8 +68,8 @@ export class Game {
    * @param playerId the id of the player that it to leave the game
    */
   public removePlayer(playerId: string) {
-    delete this.players[playerId];
     this.broadcast(playerId, { name: "cg_left" });
+    delete this.players[playerId];
   }
 
   /**

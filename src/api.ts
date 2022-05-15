@@ -7,10 +7,10 @@ export function api(gameServer: GameServer): Router {
   router.get("/events", (req, res) => res.sendFile(join("..", "tic_tac_toe.cge")));
   router.get("/info", (req, res) => res.json({
     name: "tic_tac_toe",
-    cg_version: "0.2.1",
+    cg_version: "0.3.0",
     display_name: "Tic-tac-toe",
     description: "Tic-tac-toe for CodeGame",
-    version: "0.0.1",
+    version: "0.1.1",
     repository_url: "https://github.com/code-game-project/tic-tac-toe.git"
   }));
   router.get("/games", (req, res) => {

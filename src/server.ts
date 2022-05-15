@@ -49,11 +49,24 @@ export class GameServer {
    * @param _public if the game should be listed publicly
    * @returns the game_id
    */
-  public createGame(_public: boolean): string {
+  public create(_public: boolean): string {
+    this.deleteInactive();
     const gameId = v4();
     if (_public) this.publicGames[gameId] = new Game();
     else this.privateGames[gameId] = new Game();
     return gameId;
+  }
+
+  /**
+   * Deletes inactive games
+   */
+  private deleteInactive() {
+    for (const [gameId, game] of Object.entries(this.publicGames)) {
+      if (!game.active()) delete this.publicGames[gameId];
+    }
+    for (const [gameId, game] of Object.entries(this.privateGames)) {
+      if (!game.active()) delete this.publicGames[gameId];
+    }
   }
 
   /**
@@ -63,7 +76,7 @@ export class GameServer {
    * @returns the `Player`
    * @throws if the game does not exist
    */
-  public joinGame(gameId: string, username: string, socket: Socket): Player {
+  public join(gameId: string, username: string, socket: Socket): Player {
     const game = this.getGame(gameId);
     if (game) return this.publicGames[gameId].newPlayer(username, socket);
     else throw `There is no game with the game_id "${gameId}".`;
@@ -104,5 +117,17 @@ export class GameServer {
       players[playerId] = player.username;
     }
     socket.emit(playerId, { name: "cg_info", data: { players } });
+  }
+
+  /**
+   * Checks if a game is inactive and deletes it after someone has left a game
+   * @param gameId the game_id
+   */
+  public leaveGame(gameId: string) {
+    if (this.publicGames[gameId] && !this.publicGames[gameId].active()) {
+      delete this.publicGames[gameId];
+    } else if (this.privateGames[gameId] && !this.privateGames[gameId].active()) {
+      delete this.privateGames[gameId];
+    }
   }
 }

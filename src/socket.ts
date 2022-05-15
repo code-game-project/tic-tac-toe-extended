@@ -5,8 +5,11 @@ import { GameServer } from "./server";
 import * as std from "./standard-events";
 import { Events } from "./tic-tac-toe-events";
 
+const HEARTBEAT_INTERVAL = 15 * 60;
+
 export class Socket {
   private server: GameServer;
+  private gameId?: string;
   private player?: Player;
   private socket: WebSocket;
   public readonly socketId: string = v4();
@@ -20,6 +23,10 @@ export class Socket {
     this.startHeartbeat();
   }
 
+  /**
+   * Pings the Client every `HEARTBEAT_INTERVAL` seconds and terminates
+   * the WebSocket connection if the client does not respond
+   */
   private startHeartbeat() {
     this.socket.on('pong', () => this.connectionAlive = true);
     this.socket.on('close', () => this.heartbeatInterval && clearInterval(this.heartbeatInterval));
@@ -27,7 +34,7 @@ export class Socket {
       if (this.connectionAlive === false) this.socket.terminate();
       this.connectionAlive = false;
       this.socket.ping();
-    }, 10_000);
+    }, HEARTBEAT_INTERVAL * 1000);
   }
 
   /**
@@ -68,18 +75,27 @@ export class Socket {
           this.emit("server", {
             name: "cg_created",
             data: {
-              game_id: this.server.createGame(event.data.public)
+              game_id: (this.gameId = this.server.create(event.data.public))
             }
-          }); break;
-        case "cg_join":
-          this.player = this.server.joinGame(event.data.game_id, event.data.username, this);
+          });
           break;
-        case "cg_connect": this.player = this.server.connect(
-          event.data.game_id,
-          event.data.player_id,
-          event.data.secret,
-          this
-        ); break;
+        case "cg_join":
+          this.player = this.server.join(event.data.game_id, event.data.username, this);
+          this.gameId = event.data.game_id;
+          break;
+        case "cg_leave":
+          if (this.player) this.player.leave();
+          if (this.gameId) this.server.leaveGame(this.gameId);
+          break;
+        case "cg_connect":
+          this.player = this.server.connect(
+            event.data.game_id,
+            event.data.player_id,
+            event.data.secret,
+            this
+          );
+          this.gameId = event.data.game_id;
+          break;
         case "start": this.player?.start(); break;
         case "mark": this.player?.mark(event.data.row, event.data.column); break;
         default: return false;
