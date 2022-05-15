@@ -1,7 +1,7 @@
 import { Socket } from "./socket";
 import { randomSecret } from "./secret";
 import * as std from "./standard-events";
-import { Symbol, Events } from "./tic-tac-toe-events";
+import { Events } from "./tic-tac-toe-events";
 import { Game } from "./game";
 import { v4 } from "uuid";
 
@@ -12,12 +12,10 @@ export class Player {
   public readonly playerId: string = v4();
   public readonly username: string;
   private secret: string = randomSecret();
-  private symbol: Symbol;
 
-  public constructor(symbol: Symbol, game: Game, username: string, socket: Socket) {
+  public constructor(game: Game, username: string, socket: Socket) {
     this.game = game;
     this.username = username;
-    this.symbol = symbol;
     this.sockets[socket.socketId] = socket;
     socket.emit(this.playerId, { name: "cg_joined", data: { secret: this.secret } });
   }
@@ -88,11 +86,11 @@ export class Player {
   }
 
   /**
-   * Mark a field on the board with this `Player`'s `Symbol`
+   * Mark a field on the board with this `Player`'s `player_id`
    * @param row the row
    * @param column the column
    */
-  public mark(row: number, column: string) {
-    this.game.mark(row, column, this.symbol, this.playerId);
+  public mark(row: number, column: number) {
+    this.game.mark(row, column, this.playerId);
   }
 }

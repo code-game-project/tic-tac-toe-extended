@@ -6,46 +6,37 @@ event start {}
 
 // Marks a field with the player's symbol
 event mark {
+  // the row starting at index 0
   row: int,
-  column: string,
-}
-
-// The available symbols
-enum symbol {
-  // Player 1's symbol
-  a,
-  // Player 2's symbol
-  b,
-  // Player 3's symbol
-  c,
-  // Player 4's symbol
-  d,
-  // Player 5's symbol
-  e,
-  // Empty field
-  empty
+  // the column starting at index 0
+  column: int,
 }
 
 // Notifies the player of the current board
 event board {
-  board: list<map<symbol>>,
+  // the board as rows of columns
+  board: list<list<string>>,
 }
 
 // Notifies the player that a field has been marked
 event marked {
+  // the row index starting at 0
   row: int,
-  column: string,
-  symbol: symbol,
+  // the column index starting at 0
+  column: int,
 }
 
-// Notifies the player that the field they tried to mark is occupied
+// Notifies the player that the field they tried to mark is occupied and by who
 event field_occupied {
+  // the row starting at index 0
   row: int,
-  column: string,
-  symbol: symbol,
+  // the column starting at index 0
+  column: int,
+  // the id of the player occupying the field
+  player: string,
 }
 
-// Notifies the player that it is their turn to mark a field
+// Notifies the player that it is their turn
 event my_turn {}
 
 // Notifies the player that it is an opponents turn

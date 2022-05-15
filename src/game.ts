@@ -1,18 +1,19 @@
 import { Player } from "./player";
 import { Socket } from "./socket";
 import * as std from "./standard-events";
-import { Events, Symbol } from "./tic-tac-toe-events";
+import { Events } from "./tic-tac-toe-events";
 
 /** Maxiumum amount of players in the one game at a time */
 const MAX_PLAYER_COUNT = Number(process.env.MAX_PLAYER_COUNT || 5);
 /** Maximum inactive time of a player in minutes */
 const MAX_INACTIVE_TIME = Number(process.env.MAX_INACTIVE_TIME || 10);
+/** Marks an unmarked/empty field */
+const UNMARKED = "";
 
 export class Game {
   public readonly players: { [index: string]: Player; } = {};
-  private board: { [index: string]: Symbol; }[] = [];
+  private board: string[][] = [];
   private board_sqrt?: number;
-  private availableSymbols: Symbol[] = ["a", "b", "c", "d", "e", "empty"];
   private gameStarted = false;
   private turns: string[] = [];
 
@@ -52,11 +53,11 @@ export class Game {
   public newPlayer(username: string, socket: Socket): Player {
     const playerCount = Object.keys(this.players).length;
     if (playerCount < MAX_PLAYER_COUNT && !this.gameStarted) {
-      const newPlayer = new Player(this.availableSymbols.shift() as Symbol, this, username, socket);
+      const newPlayer = new Player(this, username, socket);
       this.turns.push(newPlayer.playerId);
       this.players[newPlayer.playerId] = newPlayer;
       this.broadcast(newPlayer.playerId, { name: "cg_new_player", data: { username } });
-      this.drawBoard(playerCount + 1, newPlayer.playerId);
+      this.drawBoard(playerCount + 1);
       if (playerCount + 1 === MAX_PLAYER_COUNT) this.startGame(newPlayer.playerId);
       return newPlayer;
     } else throw "The game is full";
@@ -74,17 +75,16 @@ export class Game {
   /**
    * Draws the board to fit the amount of players
    * @param players the number of players currently in the game
-   * @param newPlayer the id of the player that was added and caused the board to be redrawn
    */
-  private drawBoard(players: number, newPlayer: string) {
+  private drawBoard(players: number) {
     this.board_sqrt = 1 + players;
+    this.board = [];
     for (let row = 0; row < this.board_sqrt; row++) {
-      this.board[row] = {};
+      this.board[row] = [];
       for (let column = 0; column < this.board_sqrt; column++) {
-        this.board[row][String.fromCharCode(97 + column)] = "empty";
+        this.board[row][column] = UNMARKED;
       }
     }
-    this.broadcast(newPlayer, { name: "board", data: { board: this.board } });
   }
 
   /**
@@ -93,47 +93,46 @@ export class Game {
    * @param column the column
    * @param rowOffset the offset of the row
    * @param columnOffset the offset of the column
-   * @returns the symbol on the field or undefined if the requested field is out of bounds
+   * @returns the player_id or "empty" marking the field or undefined if the requested field is out of bounds
    */
   private getField(
     row: number,
-    column: string,
+    column: number,
     rowOffset: number = 0,
     columnOffset: number = 0
-  ): Symbol | undefined {
-    return this.board[row + rowOffset]?.[String.fromCharCode(column.charCodeAt(0) + columnOffset)];
+  ): string | undefined {
+    return this.board[row + rowOffset]?.[column + columnOffset];
   }
 
   /**
    * Puts the game into "started mode" and notifies everyone of who's turn it is
-   * @param playerId the player that started the game
+   * @param playerId the player that caused the game to start
    */
   public startGame(playerId: string) {
     this.gameStarted = true;
+    this.broadcast(playerId, { name: "board", data: { board: this.board } });
     this.players[this.currentTurn()].emit(playerId, { name: "my_turn" });
     this.broadcast(playerId, { name: "opponents_turn", data: { player: this.currentTurn() } }, this.currentTurn());
   }
 
   /**
-   * Attempts to mark a field on the board with a `Symbol`
+   * Attempts to mark a field on the board with a `Player`
    * @param row the row
    * @param column the column
-   * @param symbol the symbol
    * @param playerId the player_id of the `Player` that wants to mark the field
-   * @returns a `Symbol` if the field is already marked, otherwise `void`
    */
-  public mark(row: number, column: string, symbol: Symbol, playerId: string) {
+  public mark(row: number, column: number, playerId: string) {
     if (this.currentTurn() !== playerId) {
       this.players[playerId].emit(playerId, {
         name: "opponents_turn", data: { player: this.currentTurn() }
       });
       return;
     };
-    if (this.board[row]?.[column] === "empty") {
-      this.board[row][column] = symbol;
-      this.broadcast(playerId, { name: "marked", data: { row, column, symbol } });
+    if (this.board[row]?.[column] === UNMARKED) {
+      this.board[row][column] = playerId;
+      this.broadcast(playerId, { name: "marked", data: { row, column } });
       this.broadcast(playerId, { name: "board", data: { board: this.board } });
-      if (this.isWinningMark(row, column, symbol)) {
+      if (this.isWinningMark(row, column, playerId)) {
         this.players[playerId].emit(playerId, { name: "winner" });
         this.broadcast(playerId, { name: "looser" }, playerId);
       } else {
@@ -145,7 +144,7 @@ export class Game {
       this.players[playerId].emit(playerId, {
         name: "field_occupied", data: {
           row, column,
-          symbol: this.board[row]?.[column]
+          player: this.board[row]?.[column]
         }
       });
     }
@@ -153,7 +152,7 @@ export class Game {
 
   /**
    * Gets the player who's turn it currently is
-   * @returns the player that is up
+   * @returns the player_id of the `Player` that is up
    */
   public currentTurn(): string {
     return this.turns[0];
@@ -161,7 +160,7 @@ export class Game {
 
   /**
    * Moves the current player to end of the queue
-   * @returns the player that is up next
+   * @returns the player_id of the `Player` that is up next
    */
   public nextTurn(): string {
     this.turns.push(this.turns.shift() as string);
@@ -172,34 +171,34 @@ export class Game {
    * Checks if a mark wins the game
    * @param column the column of the new mark
    * @param row the row of the new mark
-   * @param symbol the `Symbol`
+   * @param playerId the player_id of the player that marked the field
    */
-  private isWinningMark(row: number, column: string, symbol: Symbol) {
+  private isWinningMark(row: number, column: number, playerId: string) {
     return (
       // top left to bottom right through current
-      (this.getField(row, column, -1, -1) === symbol && this.getField(row, column, 1, 1)) === symbol ||
+      (this.getField(row, column, -1, -1) === playerId && this.getField(row, column, 1, 1)) === playerId ||
       // top center to bottom center through current
-      (this.getField(row, column, -1, 0) === symbol && this.getField(row, column, 1, 0)) === symbol ||
+      (this.getField(row, column, -1, 0) === playerId && this.getField(row, column, 1, 0)) === playerId ||
       // top right to bottom left through current
-      (this.getField(row, column, -1, 1) === symbol && this.getField(row, column, 1, -1)) === symbol ||
+      (this.getField(row, column, -1, 1) === playerId && this.getField(row, column, 1, -1)) === playerId ||
       // horizontal through current
-      (this.getField(row, column, 0, -1) === symbol && this.getField(row, column, 0, 1)) === symbol ||
+      (this.getField(row, column, 0, -1) === playerId && this.getField(row, column, 0, 1)) === playerId ||
       // current to top left
-      (this.getField(row, column, -1, -1) === symbol && this.getField(row, column, -2, -2)) === symbol ||
+      (this.getField(row, column, -1, -1) === playerId && this.getField(row, column, -2, -2)) === playerId ||
       // current to top center
-      (this.getField(row, column, -1, 0) === symbol && this.getField(row, column, -2, 0)) === symbol ||
+      (this.getField(row, column, -1, 0) === playerId && this.getField(row, column, -2, 0)) === playerId ||
       // current to top right
-      (this.getField(row, column, -1, 1) === symbol && this.getField(row, column, -2, 2)) === symbol ||
+      (this.getField(row, column, -1, 1) === playerId && this.getField(row, column, -2, 2)) === playerId ||
       // current to horizontal right
-      (this.getField(row, column, 0, 1) === symbol && this.getField(row, column, 0, 2)) === symbol ||
+      (this.getField(row, column, 0, 1) === playerId && this.getField(row, column, 0, 2)) === playerId ||
       // current to bottom right
-      (this.getField(row, column, 1, 1) === symbol && this.getField(row, column, 2, 2)) === symbol ||
+      (this.getField(row, column, 1, 1) === playerId && this.getField(row, column, 2, 2)) === playerId ||
       // current to bottom center
-      (this.getField(row, column, 1, 0) === symbol && this.getField(row, column, 2, 0)) === symbol ||
+      (this.getField(row, column, 1, 0) === playerId && this.getField(row, column, 2, 0)) === playerId ||
       // current to bottom left
-      (this.getField(row, column, 1, -1) === symbol && this.getField(row, column, 2, -2)) === symbol ||
+      (this.getField(row, column, 1, -1) === playerId && this.getField(row, column, 2, -2)) === playerId ||
       // current to horizontal left
-      (this.getField(row, column, 0, -1) === symbol && this.getField(row, column, 0, -2)) === symbol
+      (this.getField(row, column, 0, -1) === playerId && this.getField(row, column, 0, -2)) === playerId
     );
   }
 }

@@ -16,21 +16,16 @@ export interface Start {
 export interface Mark {
   name: "mark",
   data: {
+    /**
+     * the row starting at index 0
+     */
     row: number,
-    column: string,
+    /**
+     * the column starting at index 0
+     */
+    column: number,
   },
 }
-
-/**
- * The available symbols
- * - a: Player 1's symbol
- * - b: Player 2's symbol
- * - c: Player 3's symbol
- * - d: Player 4's symbol
- * - e: Player 5's symbol
- * - empty: Empty field
- */
-export type Symbol = "a" | "b" | "c" | "d" | "e" | "empty";
 
 /**
  * Notifies the player of the current board
@@ -38,7 +33,10 @@ export type Symbol = "a" | "b" | "c" | "d" | "e" | "empty";
 export interface Board {
   name: "board",
   data: {
-    board: { [index: string]: Symbol }[],
+    /**
+     * the board as rows of columns
+     */
+    board: string[][],
   },
 }
 
@@ -48,26 +46,40 @@ export interface Board {
 export interface Marked {
   name: "marked",
   data: {
+    /**
+     * the row index starting at 0
+     */
     row: number,
-    column: string,
-    symbol: Symbol,
+    /**
+     * the column index starting at 0
+     */
+    column: number,
   },
 }
 
 /**
- * Notifies the player that the field they tried to mark is occupied
+ * Notifies the player that the field they tried to mark is occupied and by who
  */
 export interface FieldOccupied {
   name: "field_occupied",
   data: {
+    /**
+     * the row starting at index 0
+     */
     row: number,
-    column: string,
-    symbol: Symbol,
+    /**
+     * the column starting at index 0
+     */
+    column: number,
+    /**
+     * the id of the player occupying the field
+     */
+    player: string,
   },
 }
 
 /**
- * Notifies the player that it is their turn to mark a field
+ * Notifies the player that it is their turn
  */
 export interface MyTurn {
   name: "my_turn",
