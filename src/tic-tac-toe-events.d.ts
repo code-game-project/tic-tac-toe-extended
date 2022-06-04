@@ -1,7 +1,3 @@
-/*
- * Tic Tac Toe v0.0.1
- */
-
 /**
  * Starts the game before the maximum player count is reached
  */
@@ -115,4 +111,12 @@ export interface Looser {
   data?: undefined,
 }
 
-export type Events = Start | Mark | Board | Marked | FieldOccupied | MyTurn | OpponentsTurn | Winner | Looser;
+/**
+ * Notifies the player that the game is tied
+ */
+export interface Tie {
+  name: "tie",
+  data?: undefined,
+}
+
+export type Events = Start | Mark | Board | Marked | FieldOccupied | MyTurn | OpponentsTurn | Winner | Looser | Tie;

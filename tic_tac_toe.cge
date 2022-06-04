@@ -50,3 +50,6 @@ event winner {}
 
 // Notifies the player that they have lost
 event looser {}
+
+// Notifies the player that the game is tied
+event tie {}

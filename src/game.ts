@@ -14,6 +14,7 @@ export class Game {
   public readonly players: { [index: string]: Player; } = {};
   public readonly spectators: { [index: string]: Socket; } = {};
   public readonly board: string[][] = [];
+  private emptyFieldsLeft = 1;
   private board_sqrt?: number;
   private gameStarted = false;
   private turns: string[] = [];
@@ -71,19 +72,21 @@ export class Game {
    * @param username the username of the new player
    * @param socket the socket that wants to create a new `Player`
    * @returns the new `Player` object
-   * @throws if the `MAX_PLAYER_COUNT` is reached
+   * @throws if the `MAX_PLAYER_COUNT` is reached or the game has already started
    */
   public newPlayer(username: string, socket: Socket): Player {
     const playerCount = Object.keys(this.players).length;
-    if (playerCount < MAX_PLAYER_COUNT && !this.gameStarted) {
-      const newPlayer = new Player(this, username, socket);
-      this.turns.push(newPlayer.playerId);
-      this.players[newPlayer.playerId] = newPlayer;
-      this.broadcast(newPlayer.playerId, { name: "cg_new_player", data: { username } });
-      this.drawBoard(playerCount + 1);
-      if (playerCount + 1 === MAX_PLAYER_COUNT) this.startGame(newPlayer.playerId);
-      return newPlayer;
-    } else throw "The game is full";
+    if (!this.gameStarted) {
+      if (playerCount < MAX_PLAYER_COUNT) {
+        const newPlayer = new Player(this, username, socket);
+        this.turns.push(newPlayer.playerId);
+        this.players[newPlayer.playerId] = newPlayer;
+        this.broadcast(newPlayer.playerId, { name: "cg_new_player", data: { username } });
+        this.drawBoard(playerCount + 1);
+        if (playerCount + 1 === MAX_PLAYER_COUNT) this.startGame(newPlayer.playerId);
+        return newPlayer;
+      } else throw "The game is full.";
+    } else throw "The game has already started.";
   }
 
   /**
@@ -117,6 +120,7 @@ export class Game {
    */
   private drawBoard(players: number) {
     this.board_sqrt = 1 + players;
+    this.emptyFieldsLeft = this.board_sqrt ** 2;
     this.board.splice(0, this.board.length);
     for (let row = 0; row < this.board_sqrt; row++) {
       this.board[row] = [];
@@ -157,12 +161,15 @@ export class Game {
       return;
     };
     if (this.board[row]?.[column] === UNMARKED) {
+      this.emptyFieldsLeft--;
       this.board[row][column] = playerId;
       this.broadcast(playerId, { name: "marked", data: { row, column } });
       this.broadcast(playerId, { name: "board", data: { board: this.board } });
       if (this.isWinningMark(row, column, playerId)) {
         this.players[playerId].emit(playerId, { name: "winner" });
         this.broadcast(playerId, { name: "looser" }, playerId);
+      } else if (this.isTie()) {
+        this.broadcast(playerId, { name: "tie" });
       } else {
         const next = this.nextTurn();
         this.players[next].emit(playerId, { name: "my_turn" });
@@ -228,5 +235,10 @@ export class Game {
       // current to horizontal left
       (this.getField(row, column, 0, -1) === playerId && this.getField(row, column, 0, -2)) === playerId
     );
+  }
+
+  /** Checks if the game is tied */
+  private isTie() {
+    return this.emptyFieldsLeft === 0;
   }
 }
