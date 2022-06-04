@@ -6,7 +6,7 @@ import { api } from "./api";
 import { GameServer } from "./server";
 
 const app = express();
-app.use(cors({ origin: ["http://localhost", "http://127.0.0.1"] }));
+app.use(cors());
 const server = createServer(app);
 const gameServer = new GameServer(server);
 app.use(api(gameServer));
