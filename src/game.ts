@@ -13,14 +13,14 @@ const UNMARKED = "";
 export class Game {
   public readonly players: { [index: string]: Player; } = {};
   public readonly spectators: { [index: string]: Socket; } = {};
-  private board: string[][] = [];
+  public readonly board: string[][] = [];
   private board_sqrt?: number;
   private gameStarted = false;
   private turns: string[] = [];
 
   /**
    * Checks if the `Game` has any active players
-   * @returns true if there are active players or they have not been inactive for too long
+   * @returns `true` if there are active players or they have not been inactive for too long
    */
   public active() {
     let active = false;
@@ -29,6 +29,25 @@ export class Game {
       if (player.active() || player.inactiveSince > now - MAX_INACTIVE_TIME * 60 * 1000) active = true;
     }
     return active;
+  }
+
+  /**
+   * Puts the game into "started mode" and notifies everyone of who's turn it is
+   * @param playerId the player that caused the game to start
+   */
+  public startGame(playerId: string) {
+    this.gameStarted = true;
+    this.broadcast(playerId, { name: "board", data: { board: this.board } });
+    this.players[this.currentTurn()].emit(playerId, { name: "my_turn" });
+    this.broadcast(playerId, { name: "opponents_turn", data: { player: this.currentTurn() } }, this.currentTurn());
+  }
+
+  /**
+   * Checks if the game has already started
+   * @returns `true` if the game has already started
+   */
+  public started(): boolean {
+    return this.gameStarted;
   }
 
   /**
@@ -98,7 +117,7 @@ export class Game {
    */
   private drawBoard(players: number) {
     this.board_sqrt = 1 + players;
-    this.board = [];
+    this.board.splice(0, this.board.length);
     for (let row = 0; row < this.board_sqrt; row++) {
       this.board[row] = [];
       for (let column = 0; column < this.board_sqrt; column++) {
@@ -122,17 +141,6 @@ export class Game {
     columnOffset: number = 0
   ): string | undefined {
     return this.board[row + rowOffset]?.[column + columnOffset];
-  }
-
-  /**
-   * Puts the game into "started mode" and notifies everyone of who's turn it is
-   * @param playerId the player that caused the game to start
-   */
-  public startGame(playerId: string) {
-    this.gameStarted = true;
-    this.broadcast(playerId, { name: "board", data: { board: this.board } });
-    this.players[this.currentTurn()].emit(playerId, { name: "my_turn" });
-    this.broadcast(playerId, { name: "opponents_turn", data: { player: this.currentTurn() } }, this.currentTurn());
   }
 
   /**

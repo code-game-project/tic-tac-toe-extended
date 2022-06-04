@@ -39,6 +39,7 @@ export class Player {
   public connectSocket(socket: Socket) {
     this.sockets[socket.socketId] = socket;
     socket.emit(this.playerId, { name: "cg_connected", data: { username: this.username } });
+    if (this.game.started()) socket.emit(this.playerId, { name: "board", data: { board: this.game.board } });
     const current = this.game.currentTurn();
     if (current === this.playerId) socket.emit(this.playerId, { name: "my_turn" });
     else socket.emit(this.playerId, { name: "opponents_turn", data: { player: current } });
