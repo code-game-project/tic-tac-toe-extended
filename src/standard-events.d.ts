@@ -1,32 +1,6 @@
 /*
- * Standard v0.3
+ * CodeGame Protocol v0.6 Standard Events
  */
-
-/**
- * Create a new game.
- */
-export interface CgCreate {
-  name: "cg_create",
-  data: {
-    /**
-     * If public is set to true, the game will be listed publicly.
-     */
-    public: boolean,
-  },
-}
-
-/**
- * The `cg_created` event is the response of the server to the client, which sent the create_game event.
- */
-export interface CgCreated {
-  name: "cg_created",
-  data: {
-    /**
-     * The ID of the game that was created.
-     */
-    game_id: string,
-  },
-}
 
 /**
  * Join an existing game by ID.
@@ -78,7 +52,7 @@ export interface CgNewPlayer {
  */
 export interface CgLeave {
   name: "cg_leave",
-  data?: undefined
+  data?: undefined,
 }
 
 /**
@@ -86,7 +60,7 @@ export interface CgLeave {
  */
 export interface CgLeft {
   name: "cg_left",
-  data?: undefined
+  data?: undefined,
 }
 
 /**
@@ -97,7 +71,7 @@ export interface CgConnect {
   name: "cg_connect",
   data: {
     /**
-     * The ID of game to connect to.
+     * The ID of the game to connect to.
      */
     game_id: string,
     /**
@@ -116,11 +90,30 @@ export interface CgConnect {
  */
 export interface CgConnected {
   name: "cg_connected",
-  data?: undefined
+  data: {
+    /**
+     * The username of the player.
+     */
+    username: string,
+  },
 }
 
 /**
- * The `cg_info` event is sent to every player that joins or connects to a game and catches them up
+ * The `cg_spectate` event is used to spectate a game.
+ * Spectators receive all public game events but cannot send any.
+ */
+export interface CgSpectate {
+  name: "cg_spectate",
+  data: {
+    /**
+     * The ID of the game to spectate.
+     */
+    game_id: string,
+  },
+}
+
+/**
+ * The `cg_info` event is sent to every player that joins, connects to or spectates a game and catches them up
  * on things that may have happened before they were connected.
  */
 export interface CgInfo {
@@ -143,10 +136,10 @@ export interface CgError {
   name: "cg_error",
   data: {
     /**
-     * The reason the error occured.
+     * The error message.
      */
-    reason: string,
+    message: string,
   },
 }
 
-export type Events = CgCreate | CgCreated | CgJoin | CgJoined | CgNewPlayer | CgLeave | CgLeft | CgConnect | CgConnected | CgInfo | CgError;
+export type Events = CgJoin | CgJoined | CgNewPlayer | CgLeave | CgLeft | CgConnect | CgConnected | CgSpectate | CgInfo | CgError;

@@ -70,7 +70,7 @@ export class GameServer {
   }
 
   /**
-   * Creates a new `Player` in the given `Game`
+   * Creates a new `Player` in a given `Game`
    * @param gameId the game_id
    * @param socket the socket that wants to join
    * @returns the `Player`
@@ -106,6 +106,30 @@ export class GameServer {
   }
 
   /**
+   * Adds a socket to given `Game` as a specatator
+   * @param gameId the game_id
+   * @param socket the socket that wants to spectate
+   * @throws if the game does not exist
+   */
+  public spectate(gameId: string, socket: Socket) {
+    const game = this.getGame(gameId);
+    if (game) game.addSpectator(socket);
+    else throw `There is no game with the game_id "${gameId}".`;
+  }
+
+  /**
+   * Adds a socket to given `Game` as a specatator
+   * @param gameId the game_id
+   * @param socketId the socket ID of the socket that wants to stop spectating
+   * @throws if the game does not exist
+   */
+  public stopSpectating(gameId: string, socketId: string) {
+    const game = this.getGame(gameId);
+    if (game) game.removeSpectator(socketId);
+    else throw `There is no game with the game_id "${gameId}".`;
+  }
+
+  /**
    * Emits information about a given `Game` to a new `Socket`
    * @param playerId the player_id of the player that joined or connected
    * @param game the `Game` about which to provide the information
@@ -113,7 +137,7 @@ export class GameServer {
    */
   public emitInfo(playerId: string, game: Game, socket: Socket) {
     const players: { [index: string]: string; } = {};
-    for (const [playerId, player] of Object.entries(game)) {
+    for (const [playerId, player] of Object.entries(game.players)) {
       players[playerId] = player.username;
     }
     socket.emit(playerId, { name: "cg_info", data: { players } });

@@ -12,6 +12,7 @@ const UNMARKED = "";
 
 export class Game {
   public readonly players: { [index: string]: Player; } = {};
+  public readonly spectators: { [index: string]: Socket; } = {};
   private board: string[][] = [];
   private board_sqrt?: number;
   private gameStarted = false;
@@ -25,13 +26,13 @@ export class Game {
     let active = false;
     const now = Date.now();
     for (const player of Object.values(this.players)) {
-      if (player.active || player.inactiveSince > now - MAX_INACTIVE_TIME * 60 * 1000) active = true;
+      if (player.active() || player.inactiveSince > now - MAX_INACTIVE_TIME * 60 * 1000) active = true;
     }
     return active;
   }
 
   /**
-   * Emitts an event to all `Player`s associated with this `Game`
+   * Emitts an event to all `Player`s and spectators associated with this `Game`
    * @param origin the id of the `Player` that triggered the event
    * @param event the event
    * @param omitPlayersById the ids of the players to which the event should not be sent
@@ -40,6 +41,9 @@ export class Game {
     for (const [playerId, player] of Object.entries(this.players)) {
       if (omitPlayersById.includes(playerId)) continue;
       player.emit(origin, event);
+    }
+    for (const specatator of Object.values(this.spectators)) {
+      specatator.emit(origin, event);
     }
   }
 
@@ -65,11 +69,27 @@ export class Game {
 
   /**
    * Removes a player from the game
-   * @param playerId the id of the player that it to leave the game
+   * @param playerId the id of the player that is to leave the game
    */
   public removePlayer(playerId: string) {
     this.broadcast(playerId, { name: "cg_left" });
     delete this.players[playerId];
+  }
+
+  /**
+   * Adds a `Socket` to the game as a spectator
+   * @param socket the socket that wants to spectate the game
+   */
+  public addSpectator(socket: Socket) {
+    this.spectators[socket.socketId] = socket;
+  }
+
+  /**
+   * Removes a spectator from the game
+   * @param socketId the id of the socket that is to leave the game
+   */
+  public removeSpectator(socketId: string) {
+    delete this.spectators[socketId];
   }
 
   /**

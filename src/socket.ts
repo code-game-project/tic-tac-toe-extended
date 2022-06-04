@@ -11,6 +11,7 @@ export class Socket {
   private server: GameServer;
   private gameId?: string;
   private player?: Player;
+  private spectating: boolean = false;
   private socket: WebSocket;
   public readonly socketId: string = v4();
   private connectionAlive: boolean = true;
@@ -47,18 +48,18 @@ export class Socket {
       if (typeof deserialized !== "object") {
         this.emit("server", {
           name: "cg_error",
-          data: { reason: "Message must represent a JSON object." }
+          data: { message: "Message must represent a JSON object." }
         });
       } else if (!this.handleEvent(deserialized)) {
         this.emit("server", {
           name: "cg_error",
-          data: { reason: `This server does not handle '${deserialized.name}' events.` }
+          data: { message: `This server does not handle '${deserialized.name}' events.` }
         });
       }
     } catch (_err) {
       this.emit("server", {
         name: "cg_error",
-        data: { reason: "Unable to deserialize message." }
+        data: { message: "Unable to deserialize message." }
       });
     }
   }
@@ -71,14 +72,6 @@ export class Socket {
   public handleEvent(event: std.Events | Events): boolean {
     try {
       switch (event.name) {
-        case "cg_create":
-          this.emit("server", {
-            name: "cg_created",
-            data: {
-              game_id: (this.gameId = this.server.create(event.data.public))
-            }
-          });
-          break;
         case "cg_join":
           this.player = this.server.join(event.data.game_id, event.data.username, this);
           this.gameId = event.data.game_id;
@@ -86,6 +79,7 @@ export class Socket {
         case "cg_leave":
           if (this.player) this.player.leave();
           if (this.gameId) this.server.leaveGame(this.gameId);
+          if (this.spectating && this.gameId) this.server.stopSpectating(this.gameId, this.socketId);
           break;
         case "cg_connect":
           this.player = this.server.connect(
@@ -96,6 +90,10 @@ export class Socket {
           );
           this.gameId = event.data.game_id;
           break;
+        case "cg_spectate":
+          this.server.spectate(event.data.game_id, this);
+          this.gameId = event.data.game_id;
+          break;
         case "start": this.player?.start(); break;
         case "mark": this.player?.mark(event.data.row, event.data.column); break;
         default: return false;
@@ -103,7 +101,7 @@ export class Socket {
     } catch (err) {
       this.emit("server", {
         name: "cg_error",
-        data: { reason: String(err) }
+        data: { message: String(err) }
       });
     }
     return true;
