@@ -1,6 +1,6 @@
 {
   "name": "tic-tac-toe",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Tic-tac-toe for CodeGame",
   "main": "dist/index.js",
   "scripts": {
