@@ -90,10 +90,9 @@ export class Player {
 
   /**
    * Mark a field on the board with this `Player`'s `player_id`
-   * @param row the row
-   * @param column the column
+   * @param field the field
    */
-  public mark(row: number, column: number) {
-    this.game.mark(row, column, this.playerId);
+  public mark(field: number) {
+    this.game.mark(field, this.playerId);
   }
 }

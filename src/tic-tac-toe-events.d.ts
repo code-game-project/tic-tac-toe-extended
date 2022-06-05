@@ -13,13 +13,9 @@ export interface Mark {
   name: "mark",
   data: {
     /**
-     * the row starting at index 0
+     * the field index
      */
-    row: number,
-    /**
-     * the column starting at index 0
-     */
-    column: number,
+    field: number,
   },
 }
 
@@ -32,7 +28,7 @@ export interface Board {
     /**
      * the board as rows of columns
      */
-    board: string[][],
+    board: string[],
   },
 }
 
@@ -43,13 +39,9 @@ export interface Marked {
   name: "marked",
   data: {
     /**
-     * the row index starting at 0
+     * the field index
      */
-    row: number,
-    /**
-     * the column index starting at 0
-     */
-    column: number,
+    field: number,
   },
 }
 
@@ -60,13 +52,9 @@ export interface FieldOccupied {
   name: "field_occupied",
   data: {
     /**
-     * the row starting at index 0
+     * the field index
      */
-    row: number,
-    /**
-     * the column starting at index 0
-     */
-    column: number,
+    field: number,
     /**
      * the id of the player occupying the field
      */

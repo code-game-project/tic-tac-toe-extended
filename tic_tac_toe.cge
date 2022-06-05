@@ -6,32 +6,26 @@ event start {}
 
 // Marks a field with the player's symbol
 event mark {
-  // the row starting at index 0
-  row: int,
-  // the column starting at index 0
-  column: int,
+  // the field index
+  field: int,
 }
 
 // Notifies the player of the current board
 event board {
   // the board as rows of columns
-  board: list<list<string>>,
+  board: list<string>,
 }
 
 // Notifies the player that a field has been marked
 event marked {
-  // the row index starting at 0
-  row: int,
-  // the column index starting at 0
-  column: int,
+  // the field index
+  field: int,
 }
 
 // Notifies the player that the field they tried to mark is occupied and by who
 event field_occupied {
-  // the row starting at index 0
-  row: int,
-  // the column starting at index 0
-  column: int,
+  // the field index
+  field: int,
   // the id of the player occupying the field
   player: string,
 }

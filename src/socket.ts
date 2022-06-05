@@ -95,7 +95,7 @@ export class Socket {
           this.gameId = event.data.game_id;
           break;
         case "start": this.player?.start(); break;
-        case "mark": this.player?.mark(event.data.row, event.data.column); break;
+        case "mark": this.player?.mark(event.data.field); break;
         default: return false;
       }
     } catch (err) {

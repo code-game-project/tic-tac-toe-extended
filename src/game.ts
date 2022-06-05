@@ -13,9 +13,9 @@ const UNMARKED = "";
 export class Game {
   public readonly players: { [index: string]: Player; } = {};
   public readonly spectators: { [index: string]: Socket; } = {};
-  public readonly board: string[][] = [];
+  public board: string[] = [];
+  private boardSqrt: number = 2;
   private emptyFieldsLeft = 1;
-  private board_sqrt?: number;
   private gameStarted = false;
   private turns: string[] = [];
 
@@ -119,53 +119,47 @@ export class Game {
    * @param players the number of players currently in the game
    */
   private drawBoard(players: number) {
-    this.board_sqrt = 1 + players;
-    this.emptyFieldsLeft = this.board_sqrt ** 2;
-    this.board.splice(0, this.board.length);
-    for (let row = 0; row < this.board_sqrt; row++) {
-      this.board[row] = [];
-      for (let column = 0; column < this.board_sqrt; column++) {
-        this.board[row][column] = UNMARKED;
-      }
-    }
+    this.boardSqrt = players + 1;
+    const fields = this.boardSqrt ** 2;
+    this.emptyFieldsLeft = fields;
+    this.board = new Array(fields).fill(UNMARKED);
   }
 
   /**
    * Gets a field on the board
-   * @param row the row
-   * @param column the column
+   * @param field the field
    * @param rowOffset the offset of the row
    * @param columnOffset the offset of the column
-   * @returns the player_id or "empty" marking the field or undefined if the requested field is out of bounds
+   * @returns the player_id or `UNMARKED` marking the field or `null` if the requested field is out of bounds
    */
   private getField(
-    row: number,
-    column: number,
+    field: number,
     rowOffset: number = 0,
     columnOffset: number = 0
-  ): string | undefined {
-    return this.board[row + rowOffset]?.[column + columnOffset];
+  ): string | null {
+    const index = field + this.boardSqrt * rowOffset + columnOffset;
+    if (index >= 0 && index < this.board.length) return this.board[index];
+    else return null;
   }
 
   /**
    * Attempts to mark a field on the board with a `Player`
-   * @param row the row
-   * @param column the column
+   * @param field the index of the field
    * @param playerId the player_id of the `Player` that wants to mark the field
    */
-  public mark(row: number, column: number, playerId: string) {
+  public mark(field: number, playerId: string) {
     if (this.currentTurn() !== playerId) {
       this.players[playerId].emit(playerId, {
         name: "opponents_turn", data: { player: this.currentTurn() }
       });
       return;
     };
-    if (this.board[row]?.[column] === UNMARKED) {
+    if (this.board[field] === UNMARKED) {
       this.emptyFieldsLeft--;
-      this.board[row][column] = playerId;
-      this.broadcast(playerId, { name: "marked", data: { row, column } });
+      this.board[field] = playerId;
+      this.broadcast(playerId, { name: "marked", data: { field } });
       this.broadcast(playerId, { name: "board", data: { board: this.board } });
-      if (this.isWinningMark(row, column, playerId)) {
+      if (this.isWinningMark(field, playerId)) {
         this.players[playerId].emit(playerId, { name: "winner" });
         this.broadcast(playerId, { name: "looser" }, playerId);
       } else if (this.isTie()) {
@@ -177,10 +171,7 @@ export class Game {
       }
     } else {
       this.players[playerId].emit(playerId, {
-        name: "field_occupied", data: {
-          row, column,
-          player: this.board[row]?.[column]
-        }
+        name: "field_occupied", data: { field, player: this.board[field] }
       });
     }
   }
@@ -204,41 +195,41 @@ export class Game {
 
   /** 
    * Checks if a mark wins the game
-   * @param column the column of the new mark
-   * @param row the row of the new mark
+   * @param field the newly marked field
    * @param playerId the player_id of the player that marked the field
    */
-  private isWinningMark(row: number, column: number, playerId: string) {
+  private isWinningMark(field: number, playerId: string) {
     return (
       // top left to bottom right through current
-      (this.getField(row, column, -1, -1) === playerId && this.getField(row, column, 1, 1)) === playerId ||
+      (this.getField(field, -1, -1) === playerId && this.getField(field, 1, 1)) === playerId ||
       // top center to bottom center through current
-      (this.getField(row, column, -1, 0) === playerId && this.getField(row, column, 1, 0)) === playerId ||
+      (this.getField(field, -1, 0) === playerId && this.getField(field, 1, 0)) === playerId ||
       // top right to bottom left through current
-      (this.getField(row, column, -1, 1) === playerId && this.getField(row, column, 1, -1)) === playerId ||
+      (this.getField(field, -1, 1) === playerId && this.getField(field, 1, -1)) === playerId ||
       // horizontal through current
-      (this.getField(row, column, 0, -1) === playerId && this.getField(row, column, 0, 1)) === playerId ||
+      (this.getField(field, 0, -1) === playerId && this.getField(field, 0, 1)) === playerId ||
       // current to top left
-      (this.getField(row, column, -1, -1) === playerId && this.getField(row, column, -2, -2)) === playerId ||
+      (this.getField(field, -1, -1) === playerId && this.getField(field, -2, -2)) === playerId ||
       // current to top center
-      (this.getField(row, column, -1, 0) === playerId && this.getField(row, column, -2, 0)) === playerId ||
+      (this.getField(field, -1, 0) === playerId && this.getField(field, -2, 0)) === playerId ||
       // current to top right
-      (this.getField(row, column, -1, 1) === playerId && this.getField(row, column, -2, 2)) === playerId ||
+      (this.getField(field, -1, 1) === playerId && this.getField(field, -2, 2)) === playerId ||
       // current to horizontal right
-      (this.getField(row, column, 0, 1) === playerId && this.getField(row, column, 0, 2)) === playerId ||
+      (this.getField(field, 0, 1) === playerId && this.getField(field, 0, 2)) === playerId ||
       // current to bottom right
-      (this.getField(row, column, 1, 1) === playerId && this.getField(row, column, 2, 2)) === playerId ||
+      (this.getField(field, 1, 1) === playerId && this.getField(field, 2, 2)) === playerId ||
       // current to bottom center
-      (this.getField(row, column, 1, 0) === playerId && this.getField(row, column, 2, 0)) === playerId ||
+      (this.getField(field, 1, 0) === playerId && this.getField(field, 2, 0)) === playerId ||
       // current to bottom left
-      (this.getField(row, column, 1, -1) === playerId && this.getField(row, column, 2, -2)) === playerId ||
+      (this.getField(field, 1, -1) === playerId && this.getField(field, 2, -2)) === playerId ||
       // current to horizontal left
-      (this.getField(row, column, 0, -1) === playerId && this.getField(row, column, 0, -2)) === playerId
+      (this.getField(field, 0, -1) === playerId && this.getField(field, 0, -2)) === playerId
     );
   }
 
   /** Checks if the game is tied */
   private isTie() {
+    // TODO: detect tie when it happens, even before all fields are marked
     return this.emptyFieldsLeft === 0;
   }
 }
