@@ -1,0 +1,51 @@
+name tic_tac_toe
+version 0.3
+
+// Starts or restarts the game before the maximum player count is reached.
+event start {}
+
+// Marks a field with the player's symbol.
+event mark {
+  // the field index
+  field: int,
+}
+
+// Notifies the player of the current board.
+event board {
+  // the board as rows of columns
+  board: list<string>,
+}
+
+// Notifies the player that a field has been marked.
+event marked {
+  // the field index
+  field: int,
+}
+
+// Notifies the player that the action they want to take is forbidden (at the moment).
+event forbidden_action {
+  // A message detailing what and why the action is forbidden.
+  message: string
+}
+
+// Notifies the player that it is their turn.
+event my_turn {}
+
+// Notifies the player that it is an opponents turn.
+event opponents_turn {
+  // the ID of the player who's turn it is
+  player: string
+}
+
+// Notifies the players that the game has ended.
+event finish {
+  // The game's outcome
+  result: enum result {
+    // The player that receives this variant has won.
+    winner,
+    // The player that receives this variant has lost.
+    looser,
+    // It's a tie.
+    tie
+  }
+}

@@ -1,3 +1,4 @@
+import { env } from "process";
 import { v4 } from "uuid";
 import { WebSocket, MessageEvent } from "ws";
 import { Player } from "./player";
@@ -5,7 +6,7 @@ import { GameServer } from "./server";
 import * as std from "./standard-events";
 import { Events } from "./tic-tac-toe-events";
 
-const HEARTBEAT_INTERVAL = 15 * 60;
+const HEARTBEAT_INTERVAL = Number(env.HEARTBEAT_INTERVAL || 15 * 60);
 
 export class Socket {
   private server: GameServer;
@@ -30,9 +31,15 @@ export class Socket {
    */
   private startHeartbeat() {
     this.socket.on('pong', () => this.connectionAlive = true);
-    this.socket.on('close', () => this.heartbeatInterval && clearInterval(this.heartbeatInterval));
+    this.socket.on('close', () => {
+      if (this.player) this.player.disconnectSocket(this.socketId);
+      if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
+    });
     this.heartbeatInterval = setInterval(() => {
-      if (this.connectionAlive === false) this.socket.terminate();
+      if (this.connectionAlive === false) {
+        this.socket.terminate();
+        if (this.player) this.player.disconnectSocket(this.socketId);
+      }
       this.connectionAlive = false;
       this.socket.ping();
     }, HEARTBEAT_INTERVAL * 1000);

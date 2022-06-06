@@ -74,18 +74,14 @@ export class Player {
     Object.values(this.sockets).forEach((socket) => socket.emit(origin, event));
   }
 
-  /**
-   * Leaves the game
-   */
+  /** Leaves the game */
   public leave() {
     this.game.removePlayer(this.playerId);
   }
 
-  /**
-   * Starts the game
-   */
+  /** Starts or restarts the game */
   public start() {
-    this.game.startGame(this.playerId);
+    this.game.start(this.playerId);
   }
 
   /**

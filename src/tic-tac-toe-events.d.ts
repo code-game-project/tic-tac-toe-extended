@@ -1,5 +1,5 @@
 /**
- * Starts the game before the maximum player count is reached
+ * Starts or restarts the game before the maximum player count is reached.
  */
 export interface Start {
   name: "start",
@@ -7,7 +7,7 @@ export interface Start {
 }
 
 /**
- * Marks a field with the player's symbol
+ * Marks a field with the player's symbol.
  */
 export interface Mark {
   name: "mark",
@@ -20,7 +20,7 @@ export interface Mark {
 }
 
 /**
- * Notifies the player of the current board
+ * Notifies the player of the current board.
  */
 export interface Board {
   name: "board",
@@ -33,7 +33,7 @@ export interface Board {
 }
 
 /**
- * Notifies the player that a field has been marked
+ * Notifies the player that a field has been marked.
  */
 export interface Marked {
   name: "marked",
@@ -46,24 +46,20 @@ export interface Marked {
 }
 
 /**
- * Notifies the player that the field they tried to mark is occupied and by who
+ * Notifies the player that the action they want to take is forbidden (at the moment).
  */
-export interface FieldOccupied {
-  name: "field_occupied",
+export interface ForbiddenAction {
+  name: "forbidden_action",
   data: {
     /**
-     * the field index
+     * A message detailing what and why the action is forbidden.
      */
-    field: number,
-    /**
-     * the id of the player occupying the field
-     */
-    player: string,
+    message: string,
   },
 }
 
 /**
- * Notifies the player that it is their turn
+ * Notifies the player that it is their turn.
  */
 export interface MyTurn {
   name: "my_turn",
@@ -71,40 +67,36 @@ export interface MyTurn {
 }
 
 /**
- * Notifies the player that it is an opponents turn
+ * Notifies the player that it is an opponents turn.
  */
 export interface OpponentsTurn {
   name: "opponents_turn",
   data: {
     /**
-     * The id of the player who's turn it is
+     * the ID of the player who's turn it is
      */
     player: string,
   },
 }
 
 /**
- * Notifies the player that they have won
+ * - winner: The player that receives this variant has won.
+ * - looser: The player that receives this variant has lost.
+ * - tie: It's a tie.
  */
-export interface Winner {
-  name: "winner",
-  data?: undefined,
-}
+export type Result = "winner" | "looser" | "tie";
 
 /**
- * Notifies the player that they have lost
+ * Notifies the players that the game has ended.
  */
-export interface Looser {
-  name: "looser",
-  data?: undefined,
+export interface Finish {
+  name: "finish",
+  data: {
+    /**
+     * The game's outcome
+     */
+    result: Result,
+  },
 }
 
-/**
- * Notifies the player that the game is tied
- */
-export interface Tie {
-  name: "tie",
-  data?: undefined,
-}
-
-export type Events = Start | Mark | Board | Marked | FieldOccupied | MyTurn | OpponentsTurn | Winner | Looser | Tie;
+export type Events = Start | Mark | Board | Marked | ForbiddenAction | MyTurn | OpponentsTurn | Finish;

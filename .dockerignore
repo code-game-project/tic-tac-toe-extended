@@ -1,0 +1,9 @@
+# compiled stuff that needs to be recompiled anyway
+node_modules/
+dist/
+
+# development and host machine stuff
+.git/
+.gitignore
+.DS_Store
+README.md
