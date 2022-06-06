@@ -1,13 +1,14 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
+    "module": "es2020",
     "noImplicitReturns": true,
     "noUnusedLocals": true,
     "outDir": "dist",
     "sourceMap": true,
     "strict": true,
-    "target": "es2017",
-    "resolveJsonModule": true,
+    "target": "es2015",
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true
   },
   "compileOnSave": true,
   "include": [

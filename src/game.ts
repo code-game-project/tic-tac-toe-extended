@@ -1,111 +1,42 @@
-import { env } from "process";
-import * as std from "./standard-events";
-import { Player } from "./player";
-import { Socket } from "./socket";
-import { Events } from "./tic-tac-toe-events";
+import { Game, Player, MAX_PLAYER_COUNT } from "@code-game-project/javascript-server";
+import { Marker } from "./marker.js";
+import { TicTacToeSocket } from "./socket.js";
 
-/** Maxiumum amount of players in the one game at a time */
-const MAX_PLAYER_COUNT = env.MAX_PLAYER_COUNT ? Math.max(Number(env.MAX_PLAYER_COUNT), 2) : 5;
-/** Maximum inactive time of a player in minutes */
-const MAX_INACTIVE_TIME = Number(env.MAX_INACTIVE_TIME || 10);
+/** Maxiumum amount of players allowed in one game at a time. */
+const MIN_PLAYER_COUNT = 2;
 /** Marks an unmarked/empty field */
 const UNMARKED = "";
 
-export class Game {
-  public readonly players: { [index: string]: Player; } = {};
-  public readonly spectators: { [index: string]: Socket; } = {};
+export class TicTacToe extends Game {
   public board: string[] = [];
   private boardSqrt: number = 2;
   private emptyFieldsLeft = 1;
-  private gameStarted = false;
-  private gameEnded = false;
+  private gameInProgess = false;
   private turns: string[] = [];
 
-  /**
-   * Checks if the `Game` has any active players
-   * @returns `true` if there are active players or they have not been inactive for too long
-   */
-  public active() {
-    let active = false;
-    const now = Date.now();
-    for (const player of Object.values(this.players)) {
-      if (player.active() || player.inactiveSince > now - MAX_INACTIVE_TIME * 60 * 1000) active = true;
-    }
-    return active;
+  protected createPlayer(username: string, socket: TicTacToeSocket): Player {
+    return new Marker(this, username, socket);
+  }
+
+  protected playerAdded(playerId: string) {
+    this.turns.push(playerId);
+    if (Object.keys(this.players).length === MAX_PLAYER_COUNT) this.start(playerId);
+  }
+
+  protected playerRemoved(playerId: string): void {
+    this.turns.filter((id) => id !== playerId);
+    if (Object.keys(this.players).length < MIN_PLAYER_COUNT) this.stop();
   }
 
   /**
-   * Emitts an event to all `Player`s and spectators associated with this `Game`
-   * @param origin the id of the `Player` that triggered the event
-   * @param event the event
-   * @param omitPlayersById the ids of the players to which the event should not be sent
-   */
-  private broadcast(origin: string, event: std.Events | Events, ...omitPlayersById: string[]) {
-    for (const [playerId, player] of Object.entries(this.players)) {
-      if (omitPlayersById.includes(playerId)) continue;
-      player.emit(origin, event);
-    }
-    for (const specatator of Object.values(this.spectators)) {
-      specatator.emit(origin, event);
-    }
-  }
-
-  /**
-   * Adds a new player to the game
-   * @param username the username of the new player
-   * @param socket the socket that wants to create a new `Player`
-   * @returns the new `Player` object
-   * @throws if the `MAX_PLAYER_COUNT` is reached or the game has already started
-   */
-  public newPlayer(username: string, socket: Socket): Player {
-    const playerCount = Object.keys(this.players).length;
-    if (!this.gameStarted) {
-      if (playerCount < MAX_PLAYER_COUNT) {
-        const newPlayer = new Player(this, username, socket);
-        this.turns.push(newPlayer.playerId);
-        this.players[newPlayer.playerId] = newPlayer;
-        this.broadcast(newPlayer.playerId, { name: "cg_new_player", data: { username } });
-        if (playerCount + 1 === MAX_PLAYER_COUNT) this.start(newPlayer.playerId);
-        return newPlayer;
-      } else throw "The game is full.";
-    } else throw "The game has already started.";
-  }
-
-  /**
-   * Removes a player from the game
-   * @param playerId the id of the player that is to leave the game
-   */
-  public removePlayer(playerId: string) {
-    this.broadcast(playerId, { name: "cg_left" });
-    delete this.players[playerId];
-  }
-
-  /**
-   * Adds a `Socket` to the game as a spectator
-   * @param socket the socket that wants to spectate the game
-   */
-  public addSpectator(socket: Socket) {
-    this.spectators[socket.socketId] = socket;
-  }
-
-  /**
-   * Removes a spectator from the game
-   * @param socketId the id of the socket that is to leave the game
-   */
-  public removeSpectator(socketId: string) {
-    delete this.spectators[socketId];
-  }
-
-  /**
-   * Puts the game into "started mode" and notifies everyone of who's turn it is
+   * Sets the game state to "in progress" and notifies everyone of who's turn it is
    * @param playerId the player that caused the game to start
    */
   public start(playerId: string) {
     const playerCount = Object.keys(this.players).length;
-    if (playerCount >= 2) {
+    if (playerCount >= MIN_PLAYER_COUNT) {
       this.drawBoard(playerCount);
-      this.gameStarted = true;
-      this.gameEnded = false;
+      this.gameInProgess = true;
       this.broadcast(playerId, { name: "board", data: { board: this.board } });
       this.players[this.currentTurn()].emit(playerId, { name: "my_turn" });
       this.broadcast(playerId, { name: "opponents_turn", data: { player: this.currentTurn() } }, this.currentTurn());
@@ -116,12 +47,17 @@ export class Game {
     }
   }
 
+  /** Sets the game state to "not in progress". */
+  private stop() {
+    this.gameInProgess = false;
+  }
+
   /**
    * Checks if the game has already started
    * @returns `true` if the game has started
    */
-  public started(): boolean {
-    return this.gameStarted;
+  public inProgress(): boolean {
+    return this.gameInProgess;
   }
 
   /**
@@ -162,48 +98,42 @@ export class Game {
    * @param playerId the player_id of the `Player` that wants to mark the field
    */
   public mark(field: number, playerId: string) {
-    if (this.gameStarted) {
-      if (!this.gameEnded) {
-        if (this.currentTurn() !== playerId) {
-          this.players[playerId].emit(playerId, {
-            name: "opponents_turn", data: { player: this.currentTurn() }
-          });
-          return;
-        };
-        if (this.board[field] === UNMARKED) {
-          this.emptyFieldsLeft--;
-          this.board[field] = playerId;
-          this.broadcast(playerId, { name: "marked", data: { field } });
-          this.broadcast(playerId, { name: "board", data: { board: this.board } });
-          if (this.isWinningMark(field, playerId)) {
-            this.gameEnded = true;
-            this.players[playerId].emit(playerId, { name: "finish", data: { result: "winner" } });
-            this.broadcast(playerId, { name: "finish", data: { result: "looser" } }, playerId);
-          } else if (this.isTie()) {
-            this.gameEnded = true;
-            this.broadcast(playerId, { name: "finish", data: { result: "tie" } });
-          } else {
-            const next = this.nextTurn();
-            this.players[next].emit(playerId, { name: "my_turn" });
-            this.broadcast(playerId, { name: "opponents_turn", data: { player: next } }, next);
-          }
-        } else if (this.board[field] !== null) {
-          this.players[playerId].emit(playerId, {
-            name: "forbidden_action", data: { message: "The field has already been marked by another player." }
-          });
+    if (this.inProgress()) {
+      if (this.currentTurn() !== playerId) {
+        this.players[playerId].emit(playerId, {
+          name: "opponents_turn", data: { player: this.currentTurn() }
+        });
+        return;
+      };
+      if (this.board[field] === UNMARKED) {
+        this.emptyFieldsLeft--;
+        this.board[field] = playerId;
+        this.broadcast(playerId, { name: "marked", data: { field } });
+        this.broadcast(playerId, { name: "board", data: { board: this.board } });
+        if (this.isWinningMark(field, playerId)) {
+          this.stop();
+          this.players[playerId].emit(playerId, { name: "finish", data: { result: "winner" } });
+          this.broadcast(playerId, { name: "finish", data: { result: "looser" } }, playerId);
+        } else if (this.isTie()) {
+          this.stop();
+          this.broadcast(playerId, { name: "finish", data: { result: "tie" } });
         } else {
-          this.players[playerId].emit(playerId, {
-            name: "forbidden_action", data: { message: `The field index is out of bounds. Must be greater than 0 and less than ${this.board.length}.` }
-          });
+          const next = this.nextTurn();
+          this.players[next].emit(playerId, { name: "my_turn" });
+          this.broadcast(playerId, { name: "opponents_turn", data: { player: next } }, next);
         }
+      } else if (this.board[field] !== null) {
+        this.players[playerId].emit(playerId, {
+          name: "forbidden_action", data: { message: "The field has already been marked by another player." }
+        });
       } else {
         this.players[playerId].emit(playerId, {
-          name: "forbidden_action", data: { message: "The game has already ended. Send the 'start' event to restart the game." }
+          name: "forbidden_action", data: { message: `The field index is out of bounds. Must be greater than 0 and less than ${this.board.length}.` }
         });
       }
     } else {
       this.players[playerId].emit(playerId, {
-        name: "forbidden_action", data: { message: "The game has not started yet. Send the 'start' event to start the game before the maximum player count is reached." }
+        name: "forbidden_action", data: { message: "The game is currently stopped. Send the 'start' event to start or restart the game." }
       });
     }
   }
