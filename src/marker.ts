@@ -1,27 +1,21 @@
-import { Player } from "@code-game-project/javascript-server";
-import { TicTacToeSocket } from "./socket.js";
-import { TicTacToe } from "./game.js";
+import { Player } from "@code-game-project/server";
+import { TicTacToe } from "./tic-tac-toe.js";
+import type { Commands } from "./game-types";
 
 export class Marker extends Player {
-  protected sockets: { [index: string]: TicTacToeSocket; } = {};
   protected game: TicTacToe;
 
-  public constructor(game: TicTacToe, username: string, socket: TicTacToeSocket) {
-    super(username, socket);
-    this.sockets[socket.socketId] = socket;
+  public constructor(game: TicTacToe, username: string) {
+    super(username);
     this.game = game;
   }
 
-  /** Starts or restarts the game */
-  public start() {
-    this.game.start(this.playerId);
-  }
-
-  /**
-   * Mark a field on the board with this `Player`'s `player_id`
-   * @param field the field
-   */
-  public mark(field: number) {
-    this.game.mark(field, this.playerId);
+  public handleCommand(command: Commands): boolean {
+    switch (command.name) {
+      case "start": this.game.start(this); break;
+      case "mark": this.game.mark(command.data.field, this); break;
+      default: return false;
+    }
+    return true;
   }
 }

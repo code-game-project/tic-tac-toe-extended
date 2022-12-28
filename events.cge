@@ -1,24 +1,37 @@
-name tic_tac_toe
-version 0.3
+name tic_tac_toe_extended
+version 0.4
 
-// Starts or restarts the game before the maximum player count is reached.
-event start {}
-
-// Marks a field with the player's symbol.
-event mark {
-  // the field index
-  field: int,
+config {
+  // The amount of marked squares in any direction required to win. default = `3`;
+  // minimum = `3`
+  win_row_size: int,
+  // The side length of the board. Equals the board size by calculating `board_size^2`.
+  // default = `(player_count + 1)^2`; minimum = `3`
+  board_size: int,
 }
+
+// Starts or restarts the game before the maximum, but after
+// the minumum, player count is reached.
+command start {}
+
+// Notifies everyone that the game has started.
+event started {}
 
 // Notifies the player of the current board.
 event board {
-  // the board as rows of columns
+  // The board as rows of columns.
   board: list<string>,
+}
+
+// Marks a field with the player's symbol.
+command mark {
+  // The field index.
+  field: int,
 }
 
 // Notifies the player that a field has been marked.
 event marked {
-  // the field index
+  // The field index.
   field: int,
 }
 
@@ -33,19 +46,21 @@ event my_turn {}
 
 // Notifies the player that it is an opponents turn.
 event opponents_turn {
-  // the ID of the player who's turn it is
+  // The ID of the player who's turn it is.
   player: string
 }
 
 // Notifies the players that the game has ended.
 event finish {
-  // The game's outcome
+  // The game's outcome.
   result: enum result {
     // The player that receives this variant has won.
     winner,
     // The player that receives this variant has lost.
     looser,
-    // It's a tie.
-    tie
-  }
+    // It's a draw.
+    draw
+  },
+  // The winner's player ID if it was not a draw.
+  winner: string
 }

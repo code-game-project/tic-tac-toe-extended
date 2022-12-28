@@ -4,23 +4,21 @@ import { join, dirname } from "path";
 import { createServer } from "http";
 import express from "express";
 import cors from "cors";
-import { createApi } from "@code-game-project/javascript-server";
-import { TicTacToeServer } from "./server.js";
-import { TicTacToeSocket } from "./socket.js";
+import { createApi, GameServer, CG_VERSION } from "@code-game-project/server";
+import { TicTacToe } from "./tic-tac-toe.js";
+import type { GameConfig } from "./game-types";
 
 const app = express();
 app.use(cors());
 const server = createServer(app);
-const gameServer: TicTacToeServer = new TicTacToeServer(
-  server, (socket) => new TicTacToeSocket(socket, gameServer)
-);
+const gameServer = new GameServer<GameConfig>(server, (_protected, config) => new TicTacToe(_protected, config));
 app.use(createApi(gameServer, join(dirname(fileURLToPath(import.meta.url)), '..', 'events.cge'), {
-  name: "tic_tac_toe",
-  cg_version: "0.6",
-  display_name: "Tic-tac-toe",
-  description: "Tic-tac-toe for CodeGame",
-  version: "0.4.0",
-  repository_url: "https://github.com/code-game-project/tic-tac-toe.git"
+  name: "tic_tac_toe_extended",
+  cg_version: CG_VERSION.join("."),
+  display_name: "Tic-Tac-Toe Extended",
+  description: "A supercharged version of tic-tac-toe for CodeGame.",
+  version: "0.5.0",
+  repository_url: "https://github.com/code-game-project/tic-tac-toe-extended.git"
 }));
 
 const PORT = Number(env.PORT || 8080);
