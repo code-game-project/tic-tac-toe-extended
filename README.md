@@ -45,9 +45,11 @@ docker run -d -p <port-on-host-machine>:8080 --name tic-tac-toe codegameproject/
 
 ## Environment Variables for Customization
 
-- PORT: Overrides the default port the server listens on. The default is `8080`.
-
-See [@code-game-project/javascript-server](https://github.com/code-game-project/javascript-server#environment-variables-for-customization) for standard variables.
+- CG_PORT: Overrides the default port the server listens on. The default is `8080`.
+- CG_MAX_GAME_COUNT: Overrides the default maximum game count per server. The default is `500`. The minimum is `1`.
+- CG_MAX_PLAYER_COUNT: Overrides the default maximum player count per game. The default is `6`. The minimum is `1`.
+- CG_MAX_INACTIVE_TIME: Overrides the default maximum time in minutes that a player is allowed to be in a game without at least one socket controlling it. The default is `10` minutes. When all players in a game are inactive the game is deleted automatically.
+- CG_HEARTBEAT_INTERVAL: Overrides the default time between WebSocket pings. The default is `10 * 60` seconds.
 
 ## License
 

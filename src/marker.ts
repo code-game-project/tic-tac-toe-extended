@@ -1,6 +1,6 @@
 import { Player } from "@code-game-project/server";
 import { TicTacToe } from "./tic-tac-toe.js";
-import type { Commands } from "./game-types";
+import type { Commands } from "./event-definitions";
 
 export class Marker extends Player {
   protected game: TicTacToe;

@@ -1,7 +1,8 @@
 import { Game, Player } from "@code-game-project/server";
 import { Marker } from "./marker.js";
-import { GameConfig, OpponentsTurnEvent, BoardEvent, ForbiddenActionEvent, MyTurnEvent, MarkedEvent, FinishEvent, Result, StartedEvent } from "./game-types.js";
 import { Board } from "./board.js";
+import type { GameConfig, OpponentsTurnEvent, BoardEvent, ForbiddenActionEvent, MyTurnEvent, MarkedEvent, FinishEvent, StartedEvent } from "./event-definitions.js";
+import { Result } from "./event-definitions.js";
 
 /** Minimum amount of players required to start a game. */
 const MIN_PLAYER_COUNT = 2;
